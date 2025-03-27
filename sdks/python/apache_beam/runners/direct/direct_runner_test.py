@@ -234,6 +234,39 @@ class DirectRunnerRetryTests(unittest.TestCase):
             'elements': ['value']
         }})
 
+class DirectRunnerWatermarkTests(unittest.TestCase):
+  def test_watermark_pending(self):
+    # Since beam 2.39 this test was failing due to
+    # `AssertionError: A total of 2 watermark-pending bundles did not execute.` 
+    # Reported in https://github.com/apache/beam/issues/26190
+
+    label = "WatermarkTest"
+    pipeline = Pipeline(DirectRunner())
+
+    pc_first = ( pipeline 
+      | f"{label}/Create" >> beam.Create(["input"]) 
+    )
+    pc_a = ( pc_first
+      | f"{label}/MapA" >> beam.Map(lambda x: ("a", "1" ))
+    )
+    pv_a = beam.pvalue.AsDict(pc_a)
+
+    pb_b = ( pc_first 
+      | f"{label}/MapB" >> beam.Map(lambda x,y: ("b", "2" ), y = pv_a)
+      # | f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
+    )
+
+    pc_c = ( (pc_a, pb_b)
+      | f"{label}/Flatten" >> beam.Flatten()
+    )
+    pv_c  = beam.pvalue.AsDict(pc_c)
+  
+    _ = ( pc_first
+      | f"{label}/MapD" >> beam.Map(lambda x,y: ("d","4"), y = pv_c)
+    )
+
+    result = pipeline.run()
+    result.wait_until_finish()
 
 if __name__ == '__main__':
   unittest.main()

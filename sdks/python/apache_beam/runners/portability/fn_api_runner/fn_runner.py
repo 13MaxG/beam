@@ -547,8 +547,6 @@ class FnApiRunner(runner.PipelineRunner):
                 stage_name))
         to_add_watermarks.append(((stage_name, bundle_watermark), data_input))
 
-    for elm in to_add_watermarks:
-      runner_execution_context.queues.watermark_pending_inputs.enque(elm)
 
     to_add_real_time = []
     while len(runner_execution_context.queues.time_pending_inputs) > 0:
@@ -575,6 +573,21 @@ class FnApiRunner(runner.PipelineRunner):
 
     for elm in to_add_real_time:
       runner_execution_context.queues.time_pending_inputs.enque(elm)
+
+    if len(runner_execution_context.queues.ready_inputs) == 0:
+      for ((stage_name, bundle_watermark), data_input) in to_add_watermarks:
+        every_producer_finished = True
+        stage_node = runner_execution_context.watermark_manager.get_stage_node(stage_name)
+        for item in itertools.chain(stage_node.inputs, stage_node.side_inputs):
+          if item._produced_watermark <  timestamp.MAX_TIMESTAMP:
+            every_producer_finished = False
+            break
+        if every_producer_finished:
+          item.set_produced_watermark(timestamp.MAX_TIMESTAMP)
+          runner_execution_context.queues.ready_inputs.enque((stage_name, data_input))
+        else:
+          runner_execution_context.queues.watermark_pending_inputs.enque(((stage_name, bundle_watermark), data_input))
+
 
   def _run_bundle_multiple_times_for_testing(
       self,
