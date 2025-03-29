@@ -257,9 +257,11 @@ class DirectRunnerWatermarkTests(unittest.TestCase):
       )
       pv_a = beam.pvalue.AsDict(pc_a)
 
+      def dummy2(x,y):
+        return ("b", "2")
       pb_b = ( pc_first 
-        | f"{label}/MapB" >> beam.Map(lambda x,y: ("b", "2" ), y = pv_a)
-        | f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
+        | f"{label}/MapB" >> beam.Map(dummy2, y = pv_a)
+       #  | f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
       )
 
       pc_c = ( (pc_a, pb_b)
@@ -270,6 +272,7 @@ class DirectRunnerWatermarkTests(unittest.TestCase):
       def my_function(x,y):
         global double_check 
         double_check = True 
+        y['a']
         return (x,y["b"]) 
 
       pc_d = ( pc_first

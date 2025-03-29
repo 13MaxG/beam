@@ -577,18 +577,19 @@ class FnApiRunner(runner.PipelineRunner):
     for ((stage_name, bundle_watermark), data_input) in to_add_watermarks:
       runner_execution_context.queues.watermark_pending_inputs.enque(((stage_name, bundle_watermark), data_input))
 
-    if len(runner_execution_context.queues.ready_inputs) == 0:
-      go_forward = False
-      for ((stage_name, bundle_watermark), data_input) in to_add_watermarks:
-        stage_node = runner_execution_context.watermark_manager.get_stage_node(stage_name)
-        for item in itertools.chain(stage_node.inputs, stage_node.side_inputs):
-          if item._produced_watermark >=  timestamp.MAX_TIMESTAMP and  item._watermark < timestamp.MAX_TIMESTAMP:
-            if "WatermarkTest/Flatten" in item.name:
-              for producer in item.producers:
-                x=1
-                pass 
-              item.set_watermark(timestamp.MAX_TIMESTAMP)
-              runner_execution_context.queues.ready_inputs.enque((stage_name, data_input))
+ #   if len(runner_execution_context.queues.ready_inputs) == 0:
+ #     go_forward = False
+ #     for ((stage_name, bundle_watermark), data_input) in to_add_watermarks:
+ #       stage_node = runner_execution_context.watermark_manager.get_stage_node(stage_name)
+ #       for item in itertools.chain(stage_node.inputs, stage_node.side_inputs):
+ #         if item._produced_watermark >=  timestamp.MAX_TIMESTAMP and  item._watermark < timestamp.MAX_TIMESTAMP:
+ #           if len(item.producers) > 1:
+ #             if True: # "WatermarkTest/Flatten" in item.name:
+ #               for producer in item.producers:
+ #                 x=1
+ #                 pass 
+ #               item.set_watermark(timestamp.MAX_TIMESTAMP)
+ #               runner_execution_context.queues.ready_inputs.enque((stage_name, data_input))
               #go_forward = True
       #if go_forward:
           #for item in itertools.chain(stage_node.inputs, stage_node.side_inputs):
