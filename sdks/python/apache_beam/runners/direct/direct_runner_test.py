@@ -241,32 +241,45 @@ class DirectRunnerWatermarkTests(unittest.TestCase):
     # Reported in https://github.com/apache/beam/issues/26190
 
     label = "WatermarkTest"
-    pipeline = Pipeline(DirectRunner())
+    global double_check
+    double_check = False
+    with test_pipeline.TestPipeline() as pipeline:
+      pc_first = ( pipeline 
+        | f"{label}/Create" >> beam.Create(["input"]) 
+      )
 
-    pc_first = ( pipeline 
-      | f"{label}/Create" >> beam.Create(["input"]) 
-    )
-    pc_a = ( pc_first
-      | f"{label}/MapA" >> beam.Map(lambda x: ("a", "1" ))
-    )
-    pv_a = beam.pvalue.AsDict(pc_a)
+      def dummy(x):
+        return ("a", "1")
 
-    pb_b = ( pc_first 
-      | f"{label}/MapB" >> beam.Map(lambda x,y: ("b", "2" ), y = pv_a)
-      # | f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
-    )
+      pc_a = ( pc_first
+        #| f"{label}/MapA" >> beam.Map(lambda x: ("a", "1" ))
+        | f"{label}/MapA" >> beam.Map(dummy)
+      )
+      pv_a = beam.pvalue.AsDict(pc_a)
 
-    pc_c = ( (pc_a, pb_b)
-      | f"{label}/Flatten" >> beam.Flatten()
-    )
-    pv_c  = beam.pvalue.AsDict(pc_c)
-  
-    _ = ( pc_first
-      | f"{label}/MapD" >> beam.Map(lambda x,y: ("d","4"), y = pv_c)
-    )
+      pb_b = ( pc_first 
+        | f"{label}/MapB" >> beam.Map(lambda x,y: ("b", "2" ), y = pv_a)
+        | f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
+      )
 
-    result = pipeline.run()
-    result.wait_until_finish()
+      pc_c = ( (pc_a, pb_b)
+        | f"{label}/Flatten" >> beam.Flatten()
+      )
+      pv_c  = beam.pvalue.AsDict(pc_c)
+
+      def my_function(x,y):
+        global double_check 
+        double_check = True 
+        return (x,y["b"]) 
+
+      pc_d = ( pc_first
+        | f"{label}/MapD" >> beam.Map(my_function, y = pv_c)
+      ) 
+
+      assert_that(pc_d, equal_to([("input","2")]))
+
+    self.assertTrue(double_check) 
+
 
 if __name__ == '__main__':
   unittest.main()
