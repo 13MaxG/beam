@@ -261,7 +261,7 @@ class DirectRunnerWatermarkTests(unittest.TestCase):
         return ("b", "2")
       pb_b = ( pc_first 
         | f"{label}/MapB" >> beam.Map(dummy2, y = pv_a)
-       #  | f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
+        # | f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
       )
 
       pc_c = ( (pc_a, pb_b)

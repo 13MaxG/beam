@@ -44,7 +44,7 @@ class WatermarkManager(object):
       self.consumers = 0
       self._fully_consumed_by = 0
       self._produced_watermark = timestamp.MIN_TIMESTAMP
-      self._zonko_watermakrs = []
+      self.zonko_watermarks = []
 
     def __str__(self):
       return 'PCollectionNode<name=%s producers=%s>' % (
@@ -58,23 +58,15 @@ class WatermarkManager(object):
     def set_produced_watermark(self, wm: timestamp.Timestamp):
       # TODO(pabloem): Consider case where there are various producers
       self._produced_watermark = wm
-      self._zonko_watermakrs += [wm]
+      self.zonko_watermarks += [wm]
 
     def upstream_watermark(self):
-      #if len(self.producers) == 1:
-      #  return self._produced_watermark
-      #el
-      w = timestamp.MAX_TIMESTAMP
-      if len(self._zonko_watermakrs)>0:
-        w = min(w, min(self._zonko_watermakrs))
-      for producer in self.producers:
-        if producer.inputs:
-          w = min(w, min(input.upstream_watermark() for input in producer.inputs))
-        if producer.side_inputs:
-          w = min(w, min(side_input.upstream_watermark() for side_input in producer.side_inputs))
-      return w
-#      if self.side_inputs:
-#        w = min(w, min(i._produced_watermark for i in producer.side_inputs))
+      if len(self.producers) == 1:
+        return self._produced_watermark
+      elif self.producers:
+        return min(p.output_watermark() for p in self.producers)
+      else:
+        return timestamp.MAX_TIMESTAMP
 
     def watermark(self):
       return self._watermark
@@ -103,16 +95,11 @@ class WatermarkManager(object):
       if not self.inputs:
         return timestamp.MAX_TIMESTAMP
       return min(i.watermark() for i in self.inputs)
-#    w = min(i._produced_watermark for i in self.inputs)
-#      if self.side_inputs:
-#        w = min(w, min(i._produced_watermark for i in self.side_inputs))
-#      return w
 
     def input_watermark(self):
       if not self.inputs:
         return timestamp.MAX_TIMESTAMP
       w = min(i.upstream_watermark() for i in self.inputs)
-
       if self.side_inputs:
         w = min(w, min(i._produced_watermark for i in self.side_inputs))
       return w
