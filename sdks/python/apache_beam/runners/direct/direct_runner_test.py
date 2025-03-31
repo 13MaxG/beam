@@ -255,26 +255,32 @@ class DirectRunnerWatermarkTests(unittest.TestCase):
       )
       pv_a = beam.pvalue.AsDict(pc_a)
 
-      pb_b = ( pc_first 
+      pc_b = ( pc_first 
         | f"{label}/MapB" >> beam.Map(lambda x,y: ("b", 2), y = pv_a)
         #| f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
       )
+      pv_b = beam.pvalue.AsDict(pc_b)
 
-      pc_c = ( (pc_a, pb_b)
+      pc_c = ( pc_a
+        | f"{label}/MapC" >> beam.Map(lambda x,y: ("c", 5), y = pv_b)
+        #| f"{label}/Reshuffle" >> beam.Reshuffle()  # beam 2.38 works without Reshuffle here
+      )
+
+      pc_d = ( (pc_a, pc_b, pc_c)
         | f"{label}/Flatten" >> beam.Flatten()
       )
-      pv_c  = beam.pvalue.AsDict(pc_c)
+      pv_d  = beam.pvalue.AsDict(pc_d)
 
       def my_function(x,y):
         global double_check 
         double_check = True 
-        return (x,y["a"] + y["b"]) 
+        return (x,y["a"] + y["b"] + y["c"]) 
 
-      pc_d = ( pc_first
-        | f"{label}/MapD" >> beam.Map(my_function, y = pv_c)
+      pc_e = ( pc_first
+        | f"{label}/MapE" >> beam.Map(my_function, y = pv_d)
       ) 
 
-      assert_that(pc_d, equal_to([("input",3)]))
+      assert_that(pc_e, equal_to([("input",8)]))
 
     self.assertTrue(double_check) 
 
