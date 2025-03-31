@@ -201,10 +201,27 @@ class Stage(object):
     def no_overlap(a, b):
       return not a or not b or not a.intersection(b)
 
-    return (
+    ret =  (
         not consumer.forced_root and not self in consumer.must_follow and
         self.is_all_sdk_urns(context) and consumer.is_all_sdk_urns(context) and
-        no_overlap(self.downstream_side_inputs, consumer.side_inputs()))
+        no_overlap(self.downstream_side_inputs, consumer.side_inputs()) 
+        )
+    
+
+    myknown_urns = frozenset([
+ #         common_urns.composites.RESHUFFLE.urn,
+ #         common_urns.primitives.IMPULSE.urn,
+          common_urns.primitives.FLATTEN.urn,
+#          common_urns.primitives.GROUP_BY_KEY.urn
+      ])
+    for transform in self.transforms:
+      if transform.spec.urn in myknown_urns :
+        ret = False
+    for transform in consumer.transforms:
+      if transform.spec.urn in myknown_urns:
+        ret = False
+    
+    return ret
 
   def fuse(self, other, context):
     # type: (Stage, TransformContext) -> Stage
@@ -227,10 +244,11 @@ class Stage(object):
   def is_all_sdk_urns(self, context):
     def is_sdk_transform(transform):
       # Execute multi-input flattens in the runner.
-      if transform.spec.urn == common_urns.primitives.FLATTEN.urn and len(
-          transform.inputs) > 1:
-        return False
-      else:
+      #if transform.spec.urn == common_urns.primitives.FLATTEN.urn:
+     #   return False
+        #if len( transform.inputs) > 1:
+        #  return False
+      #else:
         return transform.spec.urn not in context.runner_only_urns
 
     return all(is_sdk_transform(transform) for transform in self.transforms)
@@ -423,7 +441,9 @@ class TransformContext(object):
       is_drain=False):
     self.components = components
     self.known_runner_urns = known_runner_urns
-    self.runner_only_urns = known_runner_urns
+    self.runner_only_urns = known_runner_urns - frozenset(
+        [common_urns.primitives.FLATTEN.urn])
+    #self.runner_only_urns = known_runner_urns
     self._known_coder_urns = set.union(
         # Those which are required.
         self._REQUIRED_CODER_URNS,
