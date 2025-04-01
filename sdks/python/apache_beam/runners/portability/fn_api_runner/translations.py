@@ -208,18 +208,18 @@ class Stage(object):
         )
     
 
-    myknown_urns = frozenset([
- #         common_urns.composites.RESHUFFLE.urn,
- #         common_urns.primitives.IMPULSE.urn,
-          common_urns.primitives.FLATTEN.urn,
-#          common_urns.primitives.GROUP_BY_KEY.urn
-      ])
-    for transform in self.transforms:
-      if transform.spec.urn in myknown_urns :
-        ret = False
-    for transform in consumer.transforms:
-      if transform.spec.urn in myknown_urns:
-        ret = False
+#    myknown_urns = frozenset([
+# #         common_urns.composites.RESHUFFLE.urn,
+# #         common_urns.primitives.IMPULSE.urn,
+#          common_urns.primitives.FLATTEN.urn,
+##          common_urns.primitives.GROUP_BY_KEY.urn
+#      ])
+#    for transform in self.transforms:
+#      if transform.spec.urn in myknown_urns :
+#        ret = False
+#    for transform in consumer.transforms:
+#      if transform.spec.urn in myknown_urns:
+#        ret = False
     
     return ret
 
@@ -440,10 +440,10 @@ class TransformContext(object):
       use_state_iterables=False,
       is_drain=False):
     self.components = components
-    self.known_runner_urns = known_runner_urns
+    #self.known_runner_urns = known_runner_urns
     self.runner_only_urns = known_runner_urns - frozenset(
         [common_urns.primitives.FLATTEN.urn])
-    #self.runner_only_urns = known_runner_urns
+    self.runner_only_urns = known_runner_urns
     self._known_coder_urns = set.union(
         # Those which are required.
         self._REQUIRED_CODER_URNS,

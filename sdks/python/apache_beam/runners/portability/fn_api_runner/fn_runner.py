@@ -388,6 +388,7 @@ class FnApiRunner(runner.PipelineRunner):
             translations.lift_combiners,
             translations.expand_sdf,
             translations.expand_gbk,
+            translations.fix_flatten_coders,
             # translations.sink_flattens,
             translations.greedily_fuse,
             translations.read_to_impulse,
