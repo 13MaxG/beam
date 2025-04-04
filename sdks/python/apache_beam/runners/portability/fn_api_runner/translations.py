@@ -1734,6 +1734,8 @@ def expand_gbk(stages, pipeline_context):
     else:
       yield stage
 
+def fix_flatten_coders_alt(stages, pipeline_context):
+  yield from fix_flatten_coders(stages, pipeline_context, common_urns.primitives.FLATTEN.urn)
 
 def fix_flatten_coders(
     stages, pipeline_context, identity_urn=bundle_processor.IDENTITY_DOFN_URN):
@@ -1789,10 +1791,13 @@ def sink_flattens(stages, pipeline_context):
   """
   # TODO(robertwb): Actually attempt to sink rather than always materialize.
   # TODO(robertwb): Possibly fuse multi-input flattens into one of the stages.
-  for stage in fix_flatten_coders(stages,
-                                  pipeline_context,
-                                  common_urns.primitives.FLATTEN.urn):
-    transform = only_element(stage.transforms)
+  for stage in stages: # fix_flatten_coders(stages,
+                       #           pipeline_context,
+                       #           common_urns.primitives.FLATTEN.urn):
+ 
+    transform = list(stage.transforms)[0]
+    #if(len(stage.transforms) == 1 and transform.spec.urn )
+    
     if (transform.spec.urn == common_urns.primitives.FLATTEN.urn and
         len(transform.inputs) > 1):
       # This is used later to correlate the read and writes.
@@ -1813,6 +1818,9 @@ def sink_flattens(stages, pipeline_context):
             downstream_side_inputs=frozenset(),
             must_follow=stage.must_follow)
         flatten_writes.append(flatten_write)
+
+      frozen_flatten_writes = frozenset(flatten_writes)
+      for flatten_write in frozen_flatten_writes:
         yield flatten_write
 
       yield Stage(
